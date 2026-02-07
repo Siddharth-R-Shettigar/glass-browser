@@ -49,6 +49,35 @@ class GlassBrowserApp extends StatelessWidget {
       home: const BrowserHomePage(),
     );
   }
+  @override
+Widget build(BuildContext context) {
+  // 1. Wrap the Scaffold with PopScope
+  return PopScope(
+    canPop: false, // Prevents the app from closing immediately
+    onPopInvokedWithResult: (didPop, result) async {
+      // If the pop already happened, do nothing
+      if (didPop) return;
+
+      // 2. Check if the browser can go back
+      if (await _webViewController.canGoBack()) {
+        await _webViewController.goBack(); // Navigate back in the browser
+      } else {
+        // 3. If the browser can't go back, close the app
+        SystemNavigator.pop(); 
+      }
+    },
+    child: Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          // Your existing Stack content (WebView, search bar, etc.)
+          _buildWebView(),
+          _buildUI(),
+        ],
+      ),
+    ),
+  );
 }
 
 class BrowserHomePage extends StatefulWidget {
@@ -81,6 +110,8 @@ class _BrowserHomePageState extends State<BrowserHomePage> with TickerProviderSt
     // Initialize WebView
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setDomStorageEnabled(true)
+      ..enableZoom(true)
       ..loadRequest(Uri.parse(_currentUrl));
 
     // Panel animation controller
@@ -409,8 +440,10 @@ class MenuBottomSheet extends StatelessWidget {
                       context,
                       icon: Icons.desktop_windows_rounded,
                       label: 'Desktop Site',
-                      onTap: () {
-                        // Toggle desktop site
+                      onTap: () async {
+                        const desktopAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
+                        await webViewController.setUserAgent(desktopAgent);
+                        webViewController.reload();                        
                         Navigator.pop(context);
                       },
                     ),
@@ -451,7 +484,9 @@ class MenuBottomSheet extends StatelessWidget {
                       context,
                       icon: Icons.zoom_in_rounded,
                       label: 'Zoom In',
-                      onTap: () {
+                      onTap: () async {
+                        double currentZoom = await webViewController.getZoomLevel();
+                        webViewController.setZoomLevel(currentZoom + 0.2);
                         Navigator.pop(context);
                       },
                     ),
@@ -462,7 +497,11 @@ class MenuBottomSheet extends StatelessWidget {
                       context,
                       icon: Icons.zoom_out_rounded,
                       label: 'Zoom Out',
-                      onTap: () {
+                      onTap: () async {
+                        double currentZoom = await webViewController.getZoomLevel();
+                        if (currentZoom > 0.2) {
+                          webViewController.setZoomLevel(currentZoom - 0.2);
+                        }
                         Navigator.pop(context);
                       },
                     ),
