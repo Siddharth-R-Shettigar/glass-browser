@@ -377,6 +377,7 @@ class _BrowserHomePageState extends State<BrowserHomePage> with TickerProviderSt
 }
 
 // Menu Bottom Sheet (Comet-style)
+// Menu Bottom Sheet (Corrected Scope and API)
 class MenuBottomSheet extends StatelessWidget {
   final VoidCallback onSettingsTap;
   final WebViewController webViewController;
@@ -419,8 +420,8 @@ class MenuBottomSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
-              // Grid of action buttons
+
+              // Row 1: Reload & Desktop
               Row(
                 children: [
                   Expanded(
@@ -440,10 +441,10 @@ class MenuBottomSheet extends StatelessWidget {
                       context,
                       icon: Icons.desktop_windows_rounded,
                       label: 'Desktop Site',
-                      onTap: () async {
-                        const desktopAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
-                        await webViewController.setUserAgent(desktopAgent);
-                        webViewController.reload();                        
+                      onTap: () {
+                        webViewController.setUserAgent(
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
+                        webViewController.reload();
                         Navigator.pop(context);
                       },
                     ),
@@ -451,32 +452,8 @@ class MenuBottomSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMenuButton(
-                      context,
-                      icon: Icons.bookmark_border_rounded,
-                      label: 'Bookmark',
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMenuButton(
-                      context,
-                      icon: Icons.share_rounded,
-                      label: 'Share',
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+
+              // Row 2: Zoom Actions (Fixed via JavaScript)
               Row(
                 children: [
                   Expanded(
@@ -484,9 +461,10 @@ class MenuBottomSheet extends StatelessWidget {
                       context,
                       icon: Icons.zoom_in_rounded,
                       label: 'Zoom In',
-                      onTap: () async {
-                        double currentZoom = await webViewController.getZoomLevel();
-                        webViewController.setZoomLevel(currentZoom + 0.2);
+                      onTap: () {
+                        // Bypassing API constraint using JS injection
+                        webViewController.runJavaScript(
+                            "document.body.style.zoom = (parseFloat(document.body.style.zoom || 1) + 0.1).toString()");
                         Navigator.pop(context);
                       },
                     ),
@@ -497,22 +475,20 @@ class MenuBottomSheet extends StatelessWidget {
                       context,
                       icon: Icons.zoom_out_rounded,
                       label: 'Zoom Out',
-                      onTap: () async {
-                        double currentZoom = await webViewController.getZoomLevel();
-                        if (currentZoom > 0.2) {
-                          webViewController.setZoomLevel(currentZoom - 0.2);
-                        }
+                      onTap: () {
+                        webViewController.runJavaScript(
+                            "document.body.style.zoom = (parseFloat(document.body.style.zoom || 1) - 0.1).toString()");
                         Navigator.pop(context);
                       },
                     ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 20),
               const Divider(),
               const SizedBox(height: 12),
-              
+
               // Settings button
               _buildLargeMenuButton(
                 context,
@@ -530,6 +506,7 @@ class MenuBottomSheet extends StatelessWidget {
     );
   }
 
+  // MOVED THESE METHODS INSIDE THE CLASS SO THEY ARE ACCESSIBLE
   Widget _buildMenuButton(
     BuildContext context, {
     required IconData icon,
@@ -542,7 +519,10 @@ class MenuBottomSheet extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withOpacity(0.5),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: Colors.white.withOpacity(0.1),
